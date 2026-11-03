@@ -62,7 +62,7 @@ Configuration (Qwen3.5-9B, 4-bit) & decode tok/s & prefill tok/s\\\midrule
 llama.cpp b10969 (Ollama), Q4\_K\_M & 22.35 & 233\\
 \quad + any flag tuning (FA, threads, q8 KV, load mode) & 22.0--23.0 & 218--234\\
 \quad + native MTP drafting ($n{=}3$, 75--87\% acceptance) & 27.05 & 208\\
-\quad latest llama.cpp (b12068, few-row kernels) & \pending{} & \pending{}\\
+\quad latest llama.cpp (b12068, few-row kernels) & 23.29 & 238\\
 MLX 4-bit, bf16 parameters (as shipped) & 34.82 & 170\\
 MLX 4-bit, fp16 parameters & 34.79 & 221\\
 \quad (Low Power Mode on: bf16 / fp16) & 32.40 / 35.45 & 162 / 226\\\bottomrule
@@ -264,7 +264,7 @@ At a 4{,}096-token cap the gap remains: 81\% vs.\ 87\% on MATH (1 gained, 7 lost
 \section{Limitations}
 \begin{itemize}
 \item \textbf{One device.} All results come from one M1~Pro. Newer GPUs (M3 and later) enable MLX's \texttt{qmv\_wide} and have more compute headroom, so the gain from our kernel will be smaller there; the bit-exact construction still applies.
-\item \textbf{Older llama.cpp.} Our llama.cpp baseline is Ollama's bundled b10969, which predates the few-row Metal kernels~\cite{narola2026fewrow}. \pending{Re-measure with b12068.}
+\item \textbf{Older llama.cpp.} Our llama.cpp baseline is Ollama's bundled b10969, which predates the few-row Metal kernels~\cite{narola2026fewrow}. The newer release b12068, which has them, decodes only 4\% faster (23.3 vs.\ 22.4~tok/s on the same four prompts, with identical output), so the plain-decoding comparison stands. Those kernels mainly speed up multi-token batches, and we did not re-measure llama.cpp's MTP mode with b12068.
 \item \textbf{Unbenchmarked alternative.} We did not run the open mlx-lm MTP pull request~\cite{airrunner2026mlxlmmtp}: it needs the 19\,GB checkpoint re-converted with its own code. It reports 1.57$\times$ for a 27B model on an M4~Pro, a newer GPU on which MLX's multi-vector kernel is enabled.
 \item \textbf{Greedy decoding only.} Exactness for sampling would also need matched sampling arithmetic.
 \item \textbf{Hand-tuned kernels.} The kernel configurations are tuned for this GPU.
