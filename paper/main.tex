@@ -7,7 +7,7 @@
 \lstset{basicstyle=\ttfamily\small,columns=fullflexible,breaklines=true}
 
 \title{Bit-Exact Self-Speculative Decoding for a Hybrid Linear-Attention LLM\\on a Bandwidth-Bound Laptop GPU}
-\author{Venkata Sai Krishna Gani\\Department of Computer Sciences, University of Wisconsin--Madison}
+\author{Venkata Sai Krishna Gani\\Department of Computer Sciences, University of Wisconsin--Madison\\\texttt{ganisai8202@gmail.com}}
 \date{\today}
 
 \begin{document}
@@ -274,7 +274,7 @@ At a 4{,}096-token cap the gap remains: 81\% vs.\ 87\% on MATH (1 gained, 7 lost
 \section{Conclusion}
 On an M1-class laptop GPU, speculative decoding stands or falls on whether verifying a few tokens costs about the same as producing one. In both mainstream engines it does not, for 4-bit models. A small multi-token kernel fixes this. Matching the single-token kernel's arithmetic makes speculation bit-exact at negligible cost. With native MTP drafting, the hybrid Qwen3.5-9B decodes 1.38$\times$ faster than stock mlx-lm (1.58$\times$ on math) and 2.1$\times$ faster than llama.cpp~b10969, with byte-identical output. Code and raw results: \url{https://github.com/ganisai8202/qwen35-bitexact-spec-mlx}.
 
-\paragraph{Disclosure.} \pending{Add an AI-use statement here if arXiv or the target venue requires one.}
+\paragraph{Disclosure.} AI tools were used to assist with writing the code and generating the figures.
 
 \bibliographystyle{plain}
 \bibliography{refs}
