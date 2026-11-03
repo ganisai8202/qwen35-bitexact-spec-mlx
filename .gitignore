@@ -10,3 +10,5 @@ research/
 *.sh
 __pycache__/
 .DS_Store
+# local TeX engine binary
+paper/tectonic
