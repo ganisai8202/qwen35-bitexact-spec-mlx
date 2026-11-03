@@ -20,7 +20,7 @@ Single-stream LLM decoding on laptops is limited by memory bandwidth. Speculativ
 (iii)~a \emph{bit-exact} construction of that kernel, which reproduces the single-token kernel's floating-point summation order row by row, so speculative output is byte-identical to plain greedy decoding, at a measured cost of 1--2\%;
 (iv)~a trimmed-vocabulary draft head;
 (v)~optimistic pipelining of the next speculation cycle, including a correctness hazard specific to lazy array frameworks.
-On a 16\,GB M1~Pro and a 20-prompt suite (math, code, prose, chat), mean decoding speed of Qwen3.5-9B rises from 23.1~tok/s (llama.cpp, Ollama's bundled build) and 35.0~tok/s (stock mlx-lm) to 48.3~tok/s (95\% CI 46.2--50.6), all measured in one session. That is 2.1$\times$ and 1.38$\times$ respectively, reaching 55~tok/s on math. The output stays bit-identical to stock greedy decoding on all 20 prompts. The same code gives 1.32$\times$ on Qwen3.5-4B and 1.24$\times$ on Qwen3.5-2B. Part of the gain comes from one first-principles observation: on this GPU each dependent kernel costs about 10\,\textmu s of latency, so we fuse each DeltaNet layer's dozen-kernel middle into one bit-exact Metal kernel. In 1{,}500-token reasoning traces we measure 50.5~tok/s against 33.0 for stock MLX. Because the output is that of stock MLX, accuracy is that of the MLX 4-bit model, which on MATH is below llama.cpp's Q4\_K\_M (81\% vs.\ 87\% at 4{,}096 tokens; every loss is an unfinished answer). We also report what did not help: projection fusion, tree drafting, longer drafts, power-mode and llama.cpp flag tuning.
+On a 16\,GB M1~Pro and a 20-prompt suite (math, code, prose, chat), mean decoding speed of Qwen3.5-9B rises from 23.1~tok/s (llama.cpp, Ollama's bundled build) and 35.0~tok/s (stock mlx-lm) to 48.3~tok/s (95\% CI 46.2--50.6), all measured in one session. That is 2.1$\times$ and 1.38$\times$ respectively, reaching 55~tok/s on math. The newest llama.cpp release with its own MTP drafting reaches 34.7~tok/s on a four-prompt subset where our decoder runs at 52.5. The output stays bit-identical to stock greedy decoding on all 20 prompts. The same code gives 1.32$\times$ on Qwen3.5-4B and 1.24$\times$ on Qwen3.5-2B. Part of the gain comes from one first-principles observation: on this GPU each dependent kernel costs about 10\,\textmu s of latency, so we fuse each DeltaNet layer's dozen-kernel middle into one bit-exact Metal kernel. In 1{,}500-token reasoning traces we measure 50.5~tok/s against 33.0 for stock MLX. Because the output is that of stock MLX, accuracy is that of the MLX 4-bit model, which on MATH is below llama.cpp's Q4\_K\_M (81\% vs.\ 87\% at 4{,}096 tokens; every loss is an unfinished answer). We also report what did not help: projection fusion, tree drafting, longer drafts, power-mode and llama.cpp flag tuning.
 \end{abstract}
 
 \section{Introduction}
@@ -63,6 +63,7 @@ llama.cpp b10969 (Ollama), Q4\_K\_M & 22.35 & 233\\
 \quad + any flag tuning (FA, threads, q8 KV, load mode) & 22.0--23.0 & 218--234\\
 \quad + native MTP drafting ($n{=}3$, 75--87\% acceptance) & 27.05 & 208\\
 \quad latest llama.cpp (b12068, few-row kernels) & 23.29 & 238\\
+\qquad + native MTP drafting ($n{=}3$) & 34.65 & 226\\
 MLX 4-bit, bf16 parameters (as shipped) & 34.82 & 170\\
 MLX 4-bit, fp16 parameters & 34.79 & 221\\
 \quad (Low Power Mode on: bf16 / fp16) & 32.40 / 35.45 & 162 / 226\\\bottomrule
@@ -83,7 +84,7 @@ MLX \texttt{quantized\_matmul}, MLP up (ms) & 0.148 & 0.269 & 0.390 & 0.509 & 0.
 \label{tab:tscale}
 \end{table}
 
-\paragraph{Consequence.} With Qwen3.5-0.8B as the draft (44--81\% acceptance), speculative decoding in MLX ran at 0.63--0.96$\times$ of plain decoding, and the output was identical. With the model's own MTP head and stock kernels it reached 1.10--1.27$\times$ at $k{=}1$ and fell below 1$\times$ for prose at $k{\ge}2$ (\cref{tab:ablation}). llama.cpp's built-in MTP reached 27.05~tok/s at $n{=}3$ but was \emph{slower} than plain decoding at $n{=}1$ and $n{=}2$, despite 84--95\% acceptance.
+\paragraph{Consequence.} With Qwen3.5-0.8B as the draft (44--81\% acceptance), speculative decoding in MLX ran at 0.63--0.96$\times$ of plain decoding, and the output was identical. With the model's own MTP head and stock kernels it reached 1.10--1.27$\times$ at $k{=}1$ and fell below 1$\times$ for prose at $k{\ge}2$ (\cref{tab:ablation}). llama.cpp's built-in MTP reached 27.05~tok/s at $n{=}3$ but was \emph{slower} than plain decoding at $n{=}1$ and $n{=}2$, despite 84--95\% acceptance. The newer release b12068 adds few-row kernels that make small batches cheaper. With them, the same MTP configuration reaches 34.65~tok/s, 1.49$\times$ its plain decoding, which supports the diagnosis: on this GPU, speculation pays once verifying several tokens is cheap. Its output differed from plain greedy decoding on 1 of the 4 prompts.
 
 \section{Method}
 \label{sec:method}
@@ -264,7 +265,7 @@ At a 4{,}096-token cap the gap remains: 81\% vs.\ 87\% on MATH (1 gained, 7 lost
 \section{Limitations}
 \begin{itemize}
 \item \textbf{One device.} All results come from one M1~Pro. Newer GPUs (M3 and later) enable MLX's \texttt{qmv\_wide} and have more compute headroom, so the gain from our kernel will be smaller there; the bit-exact construction still applies.
-\item \textbf{Older llama.cpp.} Our llama.cpp baseline is Ollama's bundled b10969, which predates the few-row Metal kernels~\cite{narola2026fewrow}. The newer release b12068, which has them, decodes only 4\% faster (23.3 vs.\ 22.4~tok/s on the same four prompts, with identical output), so the plain-decoding comparison stands. Those kernels mainly speed up multi-token batches, and we did not re-measure llama.cpp's MTP mode with b12068.
+\item \textbf{Older llama.cpp.} Our llama.cpp baseline is Ollama's bundled b10969, which predates the few-row Metal kernels~\cite{narola2026fewrow}. The newer release b12068, which has them, decodes only 4\% faster without speculation (23.3 vs.\ 22.4~tok/s, identical output). With native MTP drafting it reaches 34.7~tok/s on the four-prompt set, against 52.5 for our exact mode on the same prompts measured in a separate session (about 1.5$\times$). We did not run b12068 on the full 20-prompt suite.
 \item \textbf{Unbenchmarked alternative.} We did not run the open mlx-lm MTP pull request~\cite{airrunner2026mlxlmmtp}: it needs the 19\,GB checkpoint re-converted with its own code. It reports 1.57$\times$ for a 27B model on an M4~Pro, a newer GPU on which MLX's multi-vector kernel is enabled.
 \item \textbf{Greedy decoding only.} Exactness for sampling would also need matched sampling arithmetic.
 \item \textbf{Hand-tuned kernels.} The kernel configurations are tuned for this GPU.
@@ -272,7 +273,7 @@ At a 4{,}096-token cap the gap remains: 81\% vs.\ 87\% on MATH (1 gained, 7 lost
 \end{itemize}
 
 \section{Conclusion}
-On an M1-class laptop GPU, speculative decoding stands or falls on whether verifying a few tokens costs about the same as producing one. In both mainstream engines it does not, for 4-bit models. A small multi-token kernel fixes this. Matching the single-token kernel's arithmetic makes speculation bit-exact at negligible cost. With native MTP drafting, the hybrid Qwen3.5-9B decodes 1.38$\times$ faster than stock mlx-lm (1.58$\times$ on math) and 2.1$\times$ faster than llama.cpp~b10969, with byte-identical output. Code and raw results: \url{https://github.com/ganisai8202/qwen35-bitexact-spec-mlx}.
+On an M1-class laptop GPU, speculative decoding stands or falls on whether verifying a few tokens costs about the same as producing one. In both mainstream engines it does not, for 4-bit models. A small multi-token kernel fixes this. Matching the single-token kernel's arithmetic makes speculation bit-exact at negligible cost. With native MTP drafting, the hybrid Qwen3.5-9B decodes 1.38$\times$ faster than stock mlx-lm (1.58$\times$ on math) and 2.1$\times$ faster than llama.cpp~b10969, with byte-identical output. It is also about 1.5$\times$ faster than the newer llama.cpp~b12068 running its own MTP drafting. Code and raw results: \url{https://github.com/ganisai8202/qwen35-bitexact-spec-mlx}.
 
 \paragraph{Disclosure.} AI tools were used to assist with writing the code and generating the figures.
 
