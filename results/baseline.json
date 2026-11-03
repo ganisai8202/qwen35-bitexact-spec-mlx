@@ -1,0 +1,48 @@
+{
+ "name": "baseline",
+ "engine": "llamacpp",
+ "flags": [],
+ "decode_tps_median": 22.946160771185404,
+ "per_prompt_tps": {
+  "math_gsm": 20.55,
+  "math_alg": 22.93,
+  "code": 22.97,
+  "prose": 22.97
+ },
+ "prefill_tps": 234.53381819429367,
+ "prefill_tokens": 1586,
+ "thermal_before": "nominal",
+ "thermal_after": "nominal",
+ "cooldown_s": 20,
+ "load_s": 67,
+ "outputs": {
+  "math_gsm": {
+   "tps": 20.549126500602206,
+   "n": 230,
+   "text": "To determine how much money Janet makes at the farmers' market, we need to calculate the number of eggs remaining after she uses some for herself and then multiply that by the selling price.\n\n**Step 1: Calculate the total number of eggs used daily.**\nJanet uses eggs for two purposes:\n1.  Breakfast: She eats 3 eggs.\n2.  Muffins: She uses 4 eggs.\n\nTotal eggs used = $3 + 4 = 7$ eggs.\n\n**Step 2: Calculate the number of eggs remaining for sale.**\nJanet's ducks lay 16 eggs per day.\nRemaining eggs = Total eggs laid - Total eggs used\nRemaining eggs = $16 - 7 = 9$ eggs.\n\n**Step 3: Calculate the total earnings.**\nShe sells the remaining eggs for $2 per egg.\nTotal earnings = Remaining eggs $\\times$ Price per egg\nTotal earnings = $9 \\times 2 = 18$ dollars.\n\nJanet makes $\\boxed{18}$ dollars every day at the farmers' market.",
+   "draft_n": null,
+   "draft_acc": null
+  },
+  "math_alg": {
+   "tps": 22.9256985303009,
+   "n": 256,
+   "text": "To find all real numbers $x$ such that $x^4 - 5x^2 + 4 = 0$, we can treat this equation as a quadratic equation in terms of $x^2$.\n\n**Step 1: Substitution**\nLet $u = x^2$. Then the equation becomes:\n$$u^2 - 5u + 4 = 0$$\n\n**Step 2: Solve the quadratic equation for $u$**\nWe can factor the quadratic equation:\n$$(u - 1)(u - 4) = 0$$\nThis gives two possible values for $u$:\n$$u = 1 \\quad \\text{or} \\quad u = 4$$\n\n**Step 3: Solve for $x$**\nRecall that $u = x^2$. We substitute back to find $x$:\n\nCase 1: $x^2 = 1$\nTaking the square root of both sides:\n$$x = \\pm 1$$\nSo, $x = 1$ and $x = -1$.\n\nCase 2: $x^2 = 4$\nTaking the square root of both sides:\n$$x",
+   "draft_n": null,
+   "draft_acc": null
+  },
+  "code": {
+   "tps": 22.972296221543743,
+   "n": 256,
+   "text": "```python\nfrom typing import List, Tuple\n\ndef merge_intervals(intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:\n    \"\"\"\n    Merges overlapping intervals.\n\n    Given a list of intervals where each interval is represented as a tuple (start, end),\n    this function returns a list of merged intervals. If two intervals overlap or are adjacent,\n    they are merged into a single interval.\n\n    Args:\n        intervals: A list of tuples, where each tuple contains two integers representing \n                   the start and end of an interval.\n\n    Returns:\n        A list of tuples representing the merged intervals, sorted by start time.\n\n    Example:\n        >>> merge_intervals([(1, 3), (2, 6), (8, 10), (15, 18)])\n        [(1, 6), (8, 10), (15, 18)]\n    \"\"\"\n    if not intervals:\n        return []\n\n    # Sort intervals based on the start time\n    intervals.sort(key=lambda x: x[0])\n\n    merged = [intervals[0]]\n\n    for current_start, current_end in intervals",
+   "draft_n": null,
+   "draft_acc": null
+  },
+  "prose": {
+   "tps": 22.96662301206991,
+   "n": 256,
+   "text": "A household refrigerator operates on the principle of the **vapor-compression refrigeration cycle**. It does not \"move\" cold air from the outside; rather, it actively pumps heat energy from the cold interior to the warmer exterior environment. This process relies on the physical properties of a refrigerant (a fluid that changes state easily between liquid and gas) and requires mechanical work to force heat to flow against its natural gradient.\n\nHere is how the four main components work together to achieve this:\n\n### 1. The Compressor: The Heart of the System\nThe cycle begins at the compressor, usually located at the back or bottom of the fridge.\n*   **Function:** It acts as the pump of the system. It takes low-pressure, cool refrigerant gas coming from the evaporator and compresses it.\n*   **Effect:** This compression drastically increases the refrigerant's **pressure** and **temperature**. By the time the refrigerant leaves the compressor, it is a superheated, high-pressure gas. This high temperature is crucial because it allows the refrigerant to release its heat to the warmer room air in the next stage.\n\n### 2. The Condenser: Releasing Heat\nThe hot, high-pressure gas travels through coils called the",
+   "draft_n": null,
+   "draft_acc": null
+  }
+ }
+}

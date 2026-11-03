@@ -1,0 +1,281 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,booktabs,graphicx,xcolor,hyperref,cleveref,listings,multirow}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcommand{\pending}[1]{\textcolor{red}{[#1]}}  % values still being measured; must be empty before submission
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,breaklines=true}
+
+\title{Bit-Exact Self-Speculative Decoding for a Hybrid Linear-Attention LLM\\on a Bandwidth-Bound Laptop GPU}
+\author{Venkata Sai Krishn Gani\\Department of Computer Sciences, University of Wisconsin--Madison}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Single-stream LLM decoding on laptops is limited by memory bandwidth. Speculative decoding should help, because verifying several drafted tokens in one forward pass reads the weights only once. We show that on an Apple M1~Pro this premise fails for 4-bit models in both MLX and llama.cpp: verifying $T$ tokens costs roughly $T$ single-token steps, so speculative decoding slows generation down. We build a decoder for Qwen3.5-9B, a hybrid model with 24 Gated DeltaNet linear-attention layers and 8 gated-attention layers, that makes speculation pay on this hardware. It combines:
+(i)~self-speculation with the model's native multi-token-prediction (MTP) head, with per-position recurrent-state snapshots for exact rollback;
+(ii)~a multi-token 4-bit mat-vec Metal kernel that verifies two tokens for $\approx$1.0--1.1$\times$ the cost of one;
+(iii)~a \emph{bit-exact} construction of that kernel, which reproduces the single-token kernel's floating-point summation order row by row, so speculative output is byte-identical to plain greedy decoding, at a measured cost of 1--2\%;
+(iv)~a trimmed-vocabulary draft head;
+(v)~optimistic pipelining of the next speculation cycle, including a correctness hazard specific to lazy array frameworks.
+On a 16\,GB M1~Pro and a 20-prompt suite (math, code, prose, chat), mean decoding speed of Qwen3.5-9B rises from 23.1~tok/s (llama.cpp, Ollama's bundled build) and 35.0~tok/s (stock mlx-lm) to 48.3~tok/s (95\% CI 46.2--50.6), all measured in one session. That is 2.1$\times$ and 1.38$\times$ respectively, reaching 55~tok/s on math. The output stays bit-identical to stock greedy decoding on all 20 prompts. The same code gives 1.32$\times$ on Qwen3.5-4B and 1.24$\times$ on Qwen3.5-2B. Part of the gain comes from one first-principles observation: on this GPU each dependent kernel costs about 10\,\textmu s of latency, so we fuse each DeltaNet layer's dozen-kernel middle into one bit-exact Metal kernel. In 1{,}500-token reasoning traces we measure 50.5~tok/s against 33.0 for stock MLX. Because the output is that of stock MLX, accuracy is that of the MLX 4-bit model, which on MATH is below llama.cpp's Q4\_K\_M (81\% vs.\ 87\% at 4{,}096 tokens; every loss is an unfinished answer). We also report what did not help: projection fusion, tree drafting, longer drafts, power-mode and llama.cpp flag tuning.
+\end{abstract}
+
+\section{Introduction}
+Running an LLM locally is attractive for privacy and cost, but decoding is slow because every token streams all the weights from memory. A 4-bit Qwen3.5-9B reads about 4.5\,GB of weights per token, so an M1~Pro with 200\,GB/s of bandwidth can produce at most about 42~tok/s from weight reads alone. Speculative decoding~\cite{leviathan2023fast,chen2023accelerating} works around this limit by guessing several tokens cheaply and verifying them together. The method rests on one assumption: verifying $T$ tokens must cost about as much as producing one.
+
+We find that this assumption is false for 4-bit models on an M1-class GPU, in both engines people use there. In MLX~0.32.4 the quantized mat-vec processes a $T$-token batch as $T$ separate passes over the weights; MLX's own multi-vector kernel exists but is enabled for the affine format only on newer GPUs~\cite{gross2026qmvwide}. In llama.cpp (Ollama's bundled build, b10969) small-batch processing scales the same way, consistent with a recent consumer-hardware study~\cite{chordiya2026lossless}. With a 0.8B draft model, speculative decoding therefore runs at 0.63--0.96$\times$ of plain decoding. Qwen3.5 adds a second obstacle: 24 of its 32 layers are Gated DeltaNet recurrences~\cite{yang2025gdn}, whose state cannot be truncated after a rejected draft.
+
+\paragraph{Contributions.} We present a measured, end-to-end case study and a working decoder:
+\begin{itemize}
+\item \textbf{Diagnosis.} Verification cost on the M1~Pro grows $\approx$linearly in $T$ in both engines, and stock engine tuning has no effect (\cref{sec:diagnosis}).
+\item \textbf{A multi-token 4-bit verification kernel} for M1-class GPUs that reads each weight once and amortizes dequantization over $T\le4$ tokens. Two-token verification costs $\approx$1.0--1.1$\times$ a single-token step (\cref{sec:kernel}). This is the same weight-reuse idea as MLX's \texttt{qmv\_wide} and llama.cpp's few-row kernels, applied where those do not run (MLX) or postdate our baseline (llama.cpp).
+\item \textbf{Bit-exact verification.} The kernel reproduces MLX's single-token summation order row by row. A raw-activation identity keeps it in registers at $T{=}3$. Speculative output is then byte-identical to plain greedy decoding, not only equal in distribution, at 1--2\% cost (\cref{sec:exact}). To our knowledge this is the first fast multi-token quantized verifier with this property.
+\item \textbf{A complete self-speculative decoder.} It combines native MTP drafting~\cite{gloeckle2024mtp,deepseek2024v3}, standard snapshot rollback for linear-attention state, a trimmed draft vocabulary~\cite{zhao2025frspec}, compiled capture layers, adaptive draft length, and optimistic pipelining. For pipelining we identify an MLX-specific hazard: in-place KV writes from a discarded lazy graph still execute unless the cache views are pinned. Each component is ablated (\cref{sec:eval}).
+\item \textbf{Where the remaining time goes.} On this GPU every \emph{dependent} kernel costs about 10\,\textmu s of latency, while independent kernels overlap. Fusing each DeltaNet layer's dozen-kernel middle into one bit-exact Metal kernel adds 3.2\% to plain and 1.9\% to speculative decoding (\cref{sec:fused}).
+\item \textbf{Negative results} that save others time (\cref{sec:negative}).
+\end{itemize}
+
+\section{Background and setup}
+\label{sec:background}
+\paragraph{Model.} Qwen3.5-9B~\cite{qwen2026qwen35} has 32 decoder layers in a repeating pattern of three Gated DeltaNet (GDN) layers and one gated full-attention layer~\cite{qiu2025gatedattn}. It uses a 4096-dimensional residual stream, 12{,}288-dimensional MLPs and a 248{,}320-token vocabulary, and ships a one-layer MTP head that predicts token $t{+}2$ from the final hidden state at $t$ and the embedding of token $t{+}1$~\cite{gloeckle2024mtp,deepseek2024v3}.
+We use the MLX 4-bit conversion (affine quantization, group size 64; about 4.47\,GB read per token) and Ollama's Q4\_K\_M GGUF (about 5.4\,GB read per token).
+
+\paragraph{Hardware and methodology.} All measurements are on one Apple M1~Pro laptop with 16\,GB of memory, macOS~14.7, MLX~0.32.4, mlx-lm~0.32.2, and llama.cpp b10969 (the \texttt{llama-server} bundled with Ollama~0.34.2).
+\begin{itemize}
+\item Decoding is greedy, single stream, with thinking disabled unless stated.
+\item tok/s means decode throughput after prefill.
+\item Before each configuration we wait for the macOS thermal state to be \emph{nominal}.
+\item Because absolute speed drifts by up to $\sim$8\% over hours of sustained load, every comparison we draw is made inside one session with configurations interleaved in rotating order.
+\item Low Power Mode was \emph{on} by default on this machine and changed MLX results (\cref{sec:diagnosis}); unless noted, numbers are with it off.
+\end{itemize}
+
+\section{Diagnosis}
+\label{sec:diagnosis}
+\paragraph{Stock engines.} \Cref{tab:baselines} lists the baselines. None of llama.cpp's options moves its speed: flash attention on or off, thread count, q8 KV cache, mmap, mlock or no-mmap all give 22.0--23.0~tok/s, with byte-identical output. MLX reaches 34.8~tok/s, about 84\% of the 4.47\,GB/token bandwidth bound. Its per-kernel mat-vec streams at 190--204\,GB/s, while llama.cpp averages about 113\,GB/s.
+
+\begin{table}[t]\centering\small
+\begin{tabular}{lrr}\toprule
+Configuration (Qwen3.5-9B, 4-bit) & decode tok/s & prefill tok/s\\\midrule
+llama.cpp b10969 (Ollama), Q4\_K\_M & 22.35 & 233\\
+\quad + any flag tuning (FA, threads, q8 KV, load mode) & 22.0--23.0 & 218--234\\
+\quad + native MTP drafting ($n{=}3$, 75--87\% acceptance) & 27.05 & 208\\
+\quad latest llama.cpp (b12068, few-row kernels) & \pending{} & \pending{}\\
+MLX 4-bit, bf16 parameters (as shipped) & 34.82 & 170\\
+MLX 4-bit, fp16 parameters & 34.79 & 221\\
+\quad (Low Power Mode on: bf16 / fp16) & 32.40 / 35.45 & 162 / 226\\\bottomrule
+\end{tabular}
+\caption{Baselines on the M1~Pro (median of four prompts, 256 tokens). The M1 has no native bf16 arithmetic: with Low Power Mode on, fp16 parameters are 9\% faster to decode; with it off, decode speeds are equal, but fp16 still raises prefill by 30\%.}
+\label{tab:baselines}
+\end{table}
+
+\paragraph{Verification cost grows with $T$.} \Cref{tab:tscale} times one 4-bit mat-vec with $T$ input vectors. Timing 40 independent calls per evaluation removes launch overhead. MLX's cost grows almost exactly linearly up to $T{=}6$. From $T{\ge}7$ it switches to a tiled kernel that costs a flat $\approx$8.6$\times$ a single vector. For the full forward pass, $T{=}5$ costs 2.9$\times$ $T{=}1$ when timed layer by layer: GDN layers 2.8$\times$, attention layers 2.9$\times$, LM head 4.0$\times$. In llama.cpp, processing 2 and 3 tokens costs 1.40$\times$ and 2.13$\times$. Raw compute is not the limit: the same GPU sustains 4.7\,TFLOPS on fp16 GEMM, even in Low Power Mode. The kernels simply re-read the weights for each vector.
+
+\begin{table}[t]\centering\small
+\begin{tabular}{lrrrrrr}\toprule
+$T$ & 1 & 2 & 3 & 4 & 5 & 8\\\midrule
+MLX \texttt{quantized\_matmul}, MLP up (ms) & 0.148 & 0.269 & 0.390 & 0.509 & 0.645 & 1.242\\
+\quad relative to $T{=}1$ & 1.00 & 1.82 & 2.64 & 3.44 & 4.36 & 8.39\\\bottomrule
+\end{tabular}
+\caption{Cost of one 4-bit mat-vec ($4096\!\to\!12288$) with $T$ input vectors on the M1~Pro, MLX~0.32.4.}
+\label{tab:tscale}
+\end{table}
+
+\paragraph{Consequence.} With Qwen3.5-0.8B as the draft (44--81\% acceptance), speculative decoding in MLX ran at 0.63--0.96$\times$ of plain decoding, and the output was identical. With the model's own MTP head and stock kernels it reached 1.10--1.27$\times$ at $k{=}1$ and fell below 1$\times$ for prose at $k{\ge}2$ (\cref{tab:ablation}). llama.cpp's built-in MTP reached 27.05~tok/s at $n{=}3$ but was \emph{slower} than plain decoding at $n{=}1$ and $n{=}2$, despite 84--95\% acceptance.
+
+\section{Method}
+\label{sec:method}
+\subsection{MTP self-speculation with exact recurrent rollback}
+Each cycle drafts $k$ tokens with the MTP head and verifies $[y, d_1,\dots,d_k]$ in one target forward pass; accepted tokens and the target's correction token are committed.
+\begin{itemize}
+\item \textbf{Draft pass.} A catch-up pass writes the newly committed positions into the MTP layer's own KV cache, using the target's hidden states, and also yields $d_1$.
+\item \textbf{Chained drafts.} Further drafts feed the MTP's own output state back in.
+\item \textbf{Rolling back GDN state.} A GDN layer's $(\text{conv}, \text{ssm})$ state cannot be truncated, so during verification we run the GDN projections batched over all $T$ positions but step the cheap recurrence one position at a time. That records the state after every position. Rollback restores the snapshot at the last accepted position and trims the attention KV caches. This is the standard technique~\cite{ghantasala2026treewy,airrunner2026mlxlmmtp}; MLX's immutable arrays make the snapshots free references.
+\end{itemize}
+mlx-lm~0.32.2 refuses speculative decoding for this model because its recurrent cache is not trimmable.
+
+One pitfall cost us hours. The checkpoint stores Qwen3.5's zero-centred RMSNorm weights, which must be loaded as $1{+}w$. The two MTP input norms, \texttt{pre\_fc\_norm\_embedding} and \texttt{pre\_fc\_norm\_hidden}, do not end in \texttt{norm.weight}, so a suffix rule skips them, and the drafts then come out as noise with $<$3\% acceptance. Shifted correctly, the 4-bit MTP head predicts token $t{+}2$ 79\% (GSM8K text) and 88\% (MATH text) of the time under teacher forcing.
+
+\subsection{A multi-token verification kernel}
+\label{sec:kernel}
+We wrote the verification mat-vec as a Metal kernel (\texttt{mx.fast.metal\_kernel}) for MLX's affine 4-bit format. Its layout follows MLX's single-token \texttt{qmv\_fast}:
+\begin{itemize}
+\item two simdgroups per threadgroup and four output rows per simdgroup;
+\item each lane handles 16 consecutive weights per 512-weight block;
+\item results are reduced with \texttt{simd\_sum}.
+\end{itemize}
+The difference is that each loaded and masked weight group is applied to all $T$ activation vectors, which are held in registers. The kernel therefore streams the weights once and pays for dequantization once per weight rather than once per weight per token.
+
+Several designs did not work.
+\begin{itemize}
+\item \textbf{simdgroup-matrix (8$\times$8 MMA) kernels.} These cost the same for every $T{\le}8$, but in their best form 3.6$\times$ a single-vector pass. Staging through threadgroup memory or keeping fragments in registers gave the same result, and prefetching made it worse.
+\item \textbf{Scalar kernels without care for registers.} These spilled at $T{\ge}3$ and ran up to 30$\times$ slower.
+\end{itemize}
+Unrolling, plus fp16 activation registers at $T{\ge}3$, avoided the spills.
+
+\Cref{tab:kernel} gives the result. Our kernel is the fastest option at every $T$. At $T{=}2$ it costs 1.23--1.47$\times$ a single-token mat-vec, against 1.56--1.83$\times$ for the path MLX dispatches and 1.96--2.29$\times$ for MLX's own \texttt{qmv\_wide}, and it is bit-exact. In an earlier session, with fp16 activation registers at $T{=}2$ (not bit-exact), it reached 0.93--1.25$\times$. The absolute ratios move between sessions as the single-token baseline drifts, so we only compare kernels measured together.
+
+\begin{table}[t]\centering\small
+\begin{tabular}{llrrr}\toprule
+matrix & kernel & $T{=}2$ & $T{=}3$ & $T{=}4$\\\midrule
+\multirow{3}{*}{GDN in-proj $4096{\times}8192$} & MLX (dispatched) & 1.83 & 2.57 & 3.42\\
+ & MLX \texttt{qmv\_wide} (port, best $k_\text{lanes}{=}4$) & 2.24 & 4.40 & 4.87\\
+ & ours & \textbf{1.47}$^\ast$ & \textbf{1.99}$^\ast$ & \textbf{2.27}\\\midrule
+\multirow{3}{*}{MLP up $4096{\times}12288$} & MLX (dispatched) & 1.73 & 2.54 & 3.31\\
+ & MLX \texttt{qmv\_wide} (port) & 2.16 & 4.23 & 4.77\\
+ & ours & \textbf{1.36}$^\ast$ & \textbf{1.91}$^\ast$ & \textbf{2.17}\\\midrule
+\multirow{3}{*}{MLP down $12288{\times}4096$} & MLX (dispatched) & 1.66 & 2.47 & 3.23\\
+ & MLX \texttt{qmv\_wide} (port) & 2.29 & 4.56 & 5.07\\
+ & ours & \textbf{1.32}$^\ast$ & \textbf{1.85}$^\ast$ & \textbf{2.12}\\\midrule
+\multirow{3}{*}{LM head $4096{\times}248320$} & MLX (dispatched) & 1.56 & 2.34 & 3.11\\
+ & MLX \texttt{qmv\_wide} (port) & 1.96 & 3.97 & 4.47\\
+ & ours & \textbf{1.23}$^\ast$ & \textbf{1.71}$^\ast$ & \textbf{1.98}\\\bottomrule
+\end{tabular}
+\caption{Cost of a $T$-token verification mat-vec, relative to MLX's single-token kernel on the same matrix (one session; Low Power Mode off; fp16 parameters; each cell is the median of 7 runs of 40 queued calls). $^\ast$Bit-identical, row by row, to MLX's single-token kernel. MLX's \texttt{qmv\_wide}, run directly via a port of its source, is \emph{slower} than MLX's fallback on this GPU. This is consistent with MLX enabling its affine path only on GPU generation~15 and later.}
+\label{tab:kernel}
+\end{table}
+
+\subsection{Bit-exact verification}
+\label{sec:exact}
+In exact arithmetic, greedy speculative decoding returns the target's own argmax sequence. In practice the verify pass runs a different kernel than single-token decoding, so ties within rounding distance can flip.
+\begin{itemize}
+\item In a 1{,}500-token reasoning trace we observed such a flip at token~19: the two top logits were 27.297 and 27.281.
+\item Production systems accept this; vLLM documents speculation as lossless ``up to the precision limits of hardware numerics''~\cite{vllm2026specdecode}, and one study measured 95\% exact-match~\cite{zhang2026correctness}.
+\end{itemize}
+We remove the discrepancy by construction.
+
+\paragraph{Matching the summation order.} MLX's single-token kernel computes, per lane and per 16-bit pack $p$ of four nibbles $n_0..n_3$,
+\[\textstyle \mathrm{acc} \mathrel{+}= \tilde x_0 (p\,\&\,\mathtt{0x000f}) + \tilde x_1 (p\,\&\,\mathtt{0x00f0}) + \tilde x_2 (p\,\&\,\mathtt{0x0f00}) + \tilde x_3 (p\,\&\,\mathtt{0xf000}),\]
+with pre-scaled activations $\tilde x_j = x_j/16^j$. Each lane's group result is $s\cdot\mathrm{acc} + b\cdot\sum x$, and the lanes are combined with \texttt{simd\_sum}. Our kernel keeps the same lane-to-weight mapping, block size and expression association for every one of its $T$ rows. Each output row is then bit-identical to MLX's single-token result, which we verified with maximum absolute difference exactly 0 on all four matrix shapes.
+
+\paragraph{The raw-activation identity.} Pre-scaled fp32 activations do not fit in registers at $T{\ge}3$. Instead we keep the raw fp16 activations, which are exact, and extract nibbles by shifting. In fp32, $(x/16^j)\cdot(16^j n)$ and $x\cdot n$ are the same real number, rounded once, so they are bitwise equal: division by a power of two is exact and there is no underflow. The kernel is therefore still bit-exact at $T{=}3$ and $T{=}4$. At $T{=}4$ it spills registers again, so our default exact mode drafts at most two tokens. A ``fast'' mode with up to three drafts uses an inexact $T{=}4$ path.
+
+\paragraph{Cost.} In an interleaved A/B on four prompts, exact verification ran at 49.9/50.7~tok/s against 50.9/51.2 for the inexact variant, a 1--2\% cost. Exact mode reproduced plain greedy MLX output byte for byte on all prompts we tested: 4 short prompts, 3 600-token reasoning traces, and the 20-prompt suite on all three model sizes.
+
+\subsection{Trimmed draft vocabulary}
+The 248k-token head is about 80\% of the cost of an MTP draft step. We draft over the 43{,}804 token ids observed in a corpus of English prose (WikiText), model-generated math solutions, and Python source. The target verifies with the full head, so a draft that needs a rarer token is simply rejected. This applies FR-Spec~\cite{zhao2025frspec} to a native MTP head. A 32k cut lost acceptance on code and prose; 43.8k recovered it.
+
+\subsection{Optimistic pipelining}
+Each cycle needs one host synchronization to count accepted drafts. Building the next cycle's lazy graph took 2.25\,ms of a 35.6\,ms $k{=}1$ cycle (after compiling the capture-mode GDN layers; 4.3\,ms before), and the GPU sat idle during it.
+
+While cycle $i$ is still verifying, we build cycle $i{+}1$ assuming all of its drafts will be accepted. That is the common case, and it needs no rewind: the caches are already in the post-verify state, and the bonus token, drafts and hidden states are lazy arrays. If the guess is right, the prebuilt graph launches immediately. If it is wrong, it is discarded before it runs, and the cache references are restored. This is the single-outcome case of overlapping speculation~\cite{liu2025pearl,kumar2026ssd}.
+
+\paragraph{The hazard.} MLX implements KV writes as in-place updates that rebind the cache array to a new graph node. Resetting the cache offset therefore does \emph{not} undo a discarded prebuild, and the next real step silently executes the whole discarded forward pass. This took the adaptive mode from 52.4 to 42.6~tok/s on a math prompt. The fix is to pin a zero-copy view (\texttt{c.keys[...]}) of each KV buffer before prebuilding and restore that view on a miss. With the fix, pipelining adds 7--10\%.
+
+\subsection{Adaptive draft length}
+\begin{itemize}
+\item After a fully accepted draft, $k$ grows by one; after a rejection at position $i$, $k$ becomes $i{+}1$.
+\item A running average of first-draft acceptance caps $k$: 1 below 0.8, 2 below 0.9, otherwise $k_{\max}$.
+\item $k_{\max}{=}4$ is always worse, because a 5-token verification falls back to MLX's slow path.
+\end{itemize}
+
+\subsection{One kernel for the DeltaNet middle}
+\label{sec:fused}
+At 4.46\,GB of weights per token and the 190--204\,GB/s that the mat-vec kernels reach on this GPU, weight streaming alone allows 42--46~tok/s, yet plain MLX decoding runs at 33--35. To locate the gap we timed the 9B forward pass with everything except its matrix products removed. The products alone, chained in layer order, take 25.6\,ms per token (174\,GB/s); the full pass takes 31.1\,ms. The 5.5\,ms remainder is the small operations between the products. Timed one by one, a single elementwise or normalization kernel on an 8--24\,KB vector costs 9--14\,\textmu s, far more than its memory traffic. The cost is latency, not work: on this GPU every kernel that depends on its predecessor pays for a pipeline drain and refill. Independent kernels overlap, which is why fusing projections that share an input does nothing (\Cref{sec:negative}).
+
+A DeltaNet layer's middle is the longest such chain: depthwise convolution, SiLU, RMS normalization of $q$ and $k$, the gate and $\beta$ computations, the recurrence and the gated RMSNorm. That is about a dozen dependent kernels and 110--125\,\textmu s per layer in isolation, or 2.7--3.0\,ms per token over 24 layers. We replace it with one Metal kernel per layer. Each threadgroup (1{,}024 threads) handles one value head; the head's $128{\times}128$ state stays in registers across the $T$ positions of a verification, and the kernel writes the per-position snapshots that rollback needs.
+
+Decoding stays bit-exact because every step copies the arithmetic of the MLX operation it replaces. That means the same intermediate dtypes, MLX's own formulas for sigmoid, softplus and \texttt{log1p}, the RMSNorm reduction order, and the gated-delta kernel's lane layout and butterfly reduction. A test compares all 24 DeltaNet layers of the 9B model at $T{=}1$--$4$ bit for bit against the unfused path, including the snapshots.
+
+In isolation the fused middle takes 56--71\,\textmu s per layer, against 110--125 for the unfused chain. We measured it end to end in a paired A/B on the 20-prompt suite: stock and fused ran back to back on every prompt, in alternating order, for two rounds. Plain decoding speeds up 3.2\% (95\% CI 2.9--3.5\%) and exact speculative decoding 1.9\% (1.6--2.3\%). Plain greedy output was identical to the unfused path in 40/40 runs.
+
+\paragraph{A pitfall.} In MLX, indexing an array with a Python integer (\texttt{x[0]}) is a gather, i.e.\ a copy, while \texttt{x[0:1]} and reshapes are free views. Our first version passed \texttt{cache[1][0]}, the 2\,MB state, to the kernel. That copy added about 50\,\textmu s per layer and made the fused kernel slower than the chain it replaced. The decoder's hot path had three more such copies, and removing them is free.
+
+\section{Evaluation}
+\label{sec:eval}
+\paragraph{Main result.} \Cref{tab:main} uses a fixed suite of 20 prompts: five math problems from held-out GSM8K/MATH test items, and five each of code, prose and chat. Each configuration runs three times, with the configuration order rotated between rounds. We report the mean of per-prompt means and a bootstrap 95\% CI over prompts. All rows for one model come from one session, and ``ours'' includes the fused DeltaNet kernel (\cref{sec:fused}). Exact mode produced byte-identical output to plain greedy decoding on 20/20 prompts for every model. Allowing a third draft (fast mode) adds 0.2--1.8\%, well inside the confidence intervals, and gives up exactness. The same code runs the 4B and 2B models unchanged, with their own MTP heads (teacher-forced draft accuracy 0.88 and 0.85). The gain over stock mlx-lm shrinks with model size: 1.38$\times$ (9B), 1.32$\times$ (4B), 1.24$\times$ (2B). A smaller model streams its weights faster, so the per-cycle costs that do not scale with model size (graph construction, chains of small dependent kernels, the host sync) take a larger share of each cycle. For the same reason the fused DeltaNet kernel helps small models most: in an earlier session without it, the gains were 1.36$\times$, 1.26$\times$ and 1.14$\times$.
+\begin{table}[t]\centering\small
+\begin{tabular}{lrrrrrr}\toprule
+M1~Pro, 16\,GB & tok/s & 95\% CI & math & code & prose & chat\\\midrule
+\multicolumn{7}{l}{\emph{Qwen3.5-9B}}\\
+llama.cpp b10969 (Ollama) & 23.09 & [23.06, 23.12] & 23.12 & 23.03 & 23.11 & 23.12\\
+\quad + native MTP ($n{=}3$) & 25.32 & [23.69, 26.97] & 30.34 & 26.21 & 21.44 & 23.28\\
+stock mlx-lm & 35.04 & [34.89, 35.18] & 34.98 & 35.03 & 34.90 & 35.23\\
+\textbf{ours, exact} ($k{\le}2$) & 48.34 & [46.15, 50.57] & 55.36 & 47.03 & \textbf{46.72} & \textbf{44.23}\\
+ours, fast ($k{\le}3$) & \textbf{49.23} & [46.69, 51.96] & \textbf{58.15} & \textbf{48.43} & 46.50 & 43.84\\
+\midrule\multicolumn{7}{l}{\emph{Qwen3.5-4B}}\\
+llama.cpp b10969 (Ollama) & 40.48 & [40.42, 40.52] & 40.41 & 40.44 & 40.53 & 40.53\\
+stock mlx-lm & 60.82 & [60.60, 61.02] & 60.44 & 60.88 & 60.83 & 61.12\\
+\textbf{ours, exact} ($k{\le}2$) & 80.35 & [76.27, 84.36] & 92.53 & \textbf{81.86} & 75.25 & \textbf{71.77}\\
+ours, fast ($k{\le}3$) & \textbf{80.49} & [76.21, 84.81] & \textbf{94.02} & 81.11 & \textbf{75.26} & 71.57\\
+\midrule\multicolumn{7}{l}{\emph{Qwen3.5-2B}}\\
+llama.cpp b10969 (Ollama) & 65.68 & [64.23, 67.08] & 69.56 & 67.55 & 63.96 & 61.65\\
+stock mlx-lm & 123.54 & [123.30, 123.84] & 123.01 & 123.46 & 123.54 & 124.14\\
+\textbf{ours, exact} ($k{\le}2$) & 153.10 & [146.78, 159.75] & 173.66 & 152.37 & 144.87 & 141.49\\
+ours, fast ($k{\le}3$) & \textbf{155.65} & [148.04, 163.97] & \textbf{182.24} & \textbf{152.87} & \textbf{145.41} & \textbf{142.08}\\\bottomrule
+\end{tabular}
+\caption{Mean decode throughput on the 20-prompt suite (thinking off, 256 new tokens, greedy, 3 rotating rounds, thermal state nominal throughout). ``Ours'' includes the fused DeltaNet kernel. Exact mode is byte-identical to plain greedy decoding on 20/20 prompts for each model. The 4B and 2B models have no llama.cpp MTP row: no MTP GGUF exists for them.}
+\label{tab:main}
+\end{table}
+
+\paragraph{Ablation.} \Cref{tab:ablation} adds the components one at a time. All rows are medians of the same four prompts at 256 tokens; within-session differences are meaningful, but absolute numbers drift between sessions. The upper rows were measured as the system was built; the bottom block re-measures the final configurations together in one session, 8\% below the earlier peak. In that session exact and fast mode run at the same speed, so exactness costs nothing measurable there.
+
+\begin{table}[t]\centering\small
+\begin{tabular}{lrl}\toprule
+Configuration (9B) & median tok/s & note\\\midrule
+llama.cpp b10969 & 22.4 & \\
+stock MLX (fp16) & 34.8 & bandwidth plateau\\
++ MTP self-speculation, $k{=}1$, MLX kernels & 40.2 & lossless\\
++ multi-token verification kernel & 43.8 & full draft head\\
++ trimmed 32k draft head & 46.6 & \\
++ 43.8k draft head, adaptive $k$ & 49.1 & \\
++ compiled capture-mode GDN layers & 50.2 & \\
++ tuned kernel registers & 52.2 & \\
++ optimistic pipelining & 55.6 & peak 64.7 (math)\\
+\midrule\multicolumn{3}{l}{\emph{One later session (plain MLX 33.6--33.8):}}\\
+full system, fast ($k{\le}3$) & 51.1 & \\
+full system, exact ($k{\le}2$) & 51.1 & byte-identical to stock\\
++ fused DeltaNet middle (\cref{sec:fused}), exact & \textbf{52.5} & byte-identical; plain 35.2\\
++ fused DeltaNet middle, fast & 52.1 & \\\bottomrule
+\end{tabular}
+\caption{Cumulative ablation on Qwen3.5-9B, M1~Pro, thinking off, 256 tokens.}
+\label{tab:ablation}
+\end{table}
+
+\paragraph{Long reasoning traces.} With thinking on and 1{,}500 generated tokens on three prompts (word problem, LRU-cache code, history essay), the mean throughput was 22.9~tok/s for llama.cpp, 33.0 for stock MLX and 50.5 for our decoder ($k{\le}3$): 2.2$\times$ and 1.53$\times$. Draft acceptance was 71--81\% and the thermal state stayed nominal.
+
+\paragraph{Quality.} Exact mode is byte-identical to stock greedy MLX, so its accuracy is that of the MLX 4-bit model. On the same 100 GSM8K-train and 100 MATH problems (2{,}048-token cap) used to score the Q4\_K\_M baseline (GSM8K 95\%, MATH 76\%), exact mode scores 93\% on GSM8K (0 gained, 2 lost; $p{=}0.50$) and 71\% on MATH at the 2{,}048-token cap.
+For comparison, mlx-lm's batched generator produces the same text as single-stream greedy decoding for only 84 of the 100 GSM8K problems: batched numerics differ, which is why exactness has to be engineered.
+The MATH difference is 2 problems gained against 7 lost, which is not significant (exact McNemar $p{=}0.18$).
+All 7 losses are answers cut off at the cap: the MLX 4-bit model writes 14\% longer solutions than the Q4\_K\_M model (1{,}218 vs.\ 1{,}072 tokens on average) and hits the cap 28 times vs.\ 22.
+The speculative decoder does not cause any of this, since its output is byte-identical to stock MLX; it is a property of the two 4-bit quantizations.
+At a 4{,}096-token cap the gap remains: 81\% vs.\ 87\% on MATH (1 gained, 7 lost; $p{=}0.07$) and 94\% vs.\ 95\% on GSM8K. Pooled over both sets, 1 gained against 8 lost is significant ($p{=}0.04$). All 7 MATH losses are again unfinished answers: the MLX model writes 18\% longer solutions (1{,}635 vs.\ 1{,}380 tokens) and does not finish within 4{,}096 tokens 17 times vs.\ 12. Moving from llama.cpp's Q4\_K\_M file to the MLX 4-bit model therefore costs some long-form math accuracy; our decoder changes nothing further.
+
+\section{What did not help}
+\label{sec:negative}
+\begin{itemize}
+\item \textbf{llama.cpp flags and load modes:} no effect (22.0--23.0~tok/s).
+\item \textbf{Low Power Mode:} no effect on llama.cpp; $-$7\% for MLX with bf16 parameters, and no effect with fp16 parameters.
+\item \textbf{Projection fusion} (concatenating q/k/v, gate/up, and the four GDN input projections, which is exact for row-quantized weights): $+$0.1\% plain, $\approx$0 speculative. These projections share an input, so their kernels already overlap; only chains of dependent kernels cost latency (\Cref{sec:fused}).
+\item \textbf{Lossless weight compression:} the empirical entropy of the 4-bit codes is 3.71 bits, so even ideal entropy coding would remove at most about 6.5\% of the bytes per token, before paying for decoding on the GPU.
+\item \textbf{Wiring the model in memory} (\texttt{mx.set\_wired\_limit}, as \texttt{mlx\_lm.generate} does): no gain (plain 31.1 wired vs.\ 32.1~tok/s unwired; exact speculative 48.2 vs.\ 49.2).
+\item \textbf{Prefetching the next layer's weights} into the system-level cache with a concurrent read: 2.7\,ms per token slower.
+\item \textbf{Compiling the single-token GDN step:} $+$1.8\% synchronous, $\approx$0 with asynchronous evaluation.
+\item \textbf{simdgroup-matrix verification kernels:} flat in $T$ but $\ge$3.6$\times$ a single-token pass.
+\item \textbf{Tree drafting:} on our cost curve, a 3-token tree verification costs 1.25--1.8$\times$ while adding $\lesssim$0.15 expected tokens per cycle.
+\item \textbf{$k_{\max}{=}4$:} 5-token verification leaves the fast kernel, so it is slower everywhere.
+\item \textbf{A 0.8B draft model:} the draft step costs 8\,ms, too large relative to a 30\,ms target step on this GPU.
+\end{itemize}
+
+\input{related_work}
+
+\section{Limitations}
+\begin{itemize}
+\item \textbf{One device.} All results come from one M1~Pro. Newer GPUs (M3 and later) enable MLX's \texttt{qmv\_wide} and have more compute headroom, so the gain from our kernel will be smaller there; the bit-exact construction still applies.
+\item \textbf{Older llama.cpp.} Our llama.cpp baseline is Ollama's bundled b10969, which predates the few-row Metal kernels~\cite{narola2026fewrow}. \pending{Re-measure with b12068.}
+\item \textbf{Unbenchmarked alternative.} We did not run the open mlx-lm MTP pull request~\cite{airrunner2026mlxlmmtp}: it needs the 19\,GB checkpoint re-converted with its own code. It reports 1.57$\times$ for a 27B model on an M4~Pro, a newer GPU on which MLX's multi-vector kernel is enabled.
+\item \textbf{Greedy decoding only.} Exactness for sampling would also need matched sampling arithmetic.
+\item \textbf{Hand-tuned kernels.} The kernel configurations are tuned for this GPU.
+\item \textbf{Model coverage.} We evaluate Qwen3.5-9B, 4B and 2B. Larger models do not fit in 16\,GB.
+\end{itemize}
+
+\section{Conclusion}
+On an M1-class laptop GPU, speculative decoding stands or falls on whether verifying a few tokens costs about the same as producing one. In both mainstream engines it does not, for 4-bit models. A small multi-token kernel fixes this. Matching the single-token kernel's arithmetic makes speculation bit-exact at negligible cost. With native MTP drafting, the hybrid Qwen3.5-9B decodes 1.38$\times$ faster than stock mlx-lm (1.58$\times$ on math) and 2.1$\times$ faster than llama.cpp~b10969, with byte-identical output. Code and raw results: \url{https://github.com/ganisai8202/qwen35-bitexact-spec-mlx}.
+
+\paragraph{Disclosure.} \pending{Add an AI-use statement here if arXiv or the target venue requires one.}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+\end{document}

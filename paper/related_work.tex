@@ -1,0 +1,50 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Speculative decoding.}
+Draft-then-verify decoding goes back to blockwise parallel decoding~\cite{stern2018blockwise}.
+Speculative decoding and speculative sampling~\cite{leviathan2023fast,chen2023accelerating} added an acceptance rule that preserves the target distribution, so under greedy decoding the output equals the target's own argmax sequence, in exact arithmetic.
+Later work improves the drafter: extra decoding heads (Medusa~\cite{cai2024medusa}), feature-level drafters (EAGLE~\cite{li2024eagle,li2024eagle2,li2025eagle3}), a recurrent drafter (ReDrafter~\cite{cheng2024redrafter}), layer skipping~\cite{zhang2024draftverify}, Jacobi-style n-gram guessing~\cite{fu2024lookahead}, and drafters that emit a whole block in one pass (DFlash~\cite{chen2026dflash}, DFlare~\cite{zhang2026dflare}, Liquid AI's DSpark~\cite{liquid2026dspark}).
+Others verify token trees instead of chains~\cite{miao2024specinfer,li2024eagle2,xiong2024dyspec}.
+FR-Spec~\cite{zhao2025frspec} restricts the draft LM head to a frequency-ranked vocabulary subset, and the released EAGLE-3 checkpoints draft over 32k of 128k tokens; our 43.8k-token MTP head applies this idea to Qwen3.5's 248k vocabulary and is not new.
+Adaptive draft length (SpecDec++~\cite{huang2025specdecpp}, PEARL~\cite{liu2025pearl}) is likewise established, as is overlapping drafting with verification: PEARL drafts during verification, and Speculative Speculative Decoding~\cite{kumar2026ssd} prepares speculations for predicted verification outcomes.
+Our optimistic pipelining is the single-outcome case of that idea (predict full acceptance) on one device.
+What we add there is an MLX-specific hazard: in-place KV-cache writes inside a discarded lazy graph still execute unless the KV views are pinned.
+Our negative result for tree drafting reflects our measured verification cost curve; tree and block methods assume verification of many tokens is nearly free, which it is not on an M1 Pro.
+
+\paragraph{Multi-token prediction.}
+Gloeckle et al.~\cite{gloeckle2024mtp} train several output heads on a shared trunk and report up to $3\times$ faster inference by using them for self-speculation.
+DeepSeek-V3~\cite{deepseek2024v3} trains sequential MTP modules and reuses them as a drafter, with 85--90\% second-token acceptance and $1.8\times$ tokens per second.
+Qwen3-Next~\cite{qwen2025qwen3next} and Qwen3.5~\cite{qwen2026qwen35} ship MTP modules intended for inference; Qwen3.5-9B stacks eight blocks of three Gated DeltaNet layers and one gated-attention layer~\cite{qiu2025gatedattn}.
+MTP self-speculation for this family already exists in llama.cpp~\cite{am17an2026llamacppmtp}, in an open mlx-lm pull request~\cite{airrunner2026mlxlmmtp}, and in MTPLX~\cite{altoukhi2026mtplx}.
+We claim no novelty for MTP drafting.
+Our contribution is making its verification cheap and exact on hardware where, by default, it is neither.
+
+\paragraph{Linear-attention and hybrid models.}
+Gated DeltaNet~\cite{yang2025gdn} combines the delta rule of DeltaNet~\cite{yang2024deltanet} with the gating of Mamba-2~\cite{dao2024mamba2,gu2023mamba}.
+Its layers overwrite a fixed-size state, so rejected drafts cannot be dropped by truncating a cache.
+The Mamba in the Llama~\cite{wang2024mambainllama} gave a speculative decoding algorithm for distilled hybrids and STree~\cite{wu2025stree} gave tree verification for SSMs.
+Work from 2026 targets Gated DeltaNet hybrids in GPU serving engines: TreeWY~\cite{ghantasala2026treewy} and Bole~\cite{wang2026bole} compute tree updates in closed form and rebuild only the accepted state, SpecLA~\cite{wang2026specla} stores compact factors to recover it, Weaver~\cite{oda2026weaver} verifies trees without rollback, KVBuffer~\cite{zou2026kvbuffer} defers state updates by buffering keys and values, LumoTree~\cite{ma2026lumotree} (first released as ``GDN Tree-Scan'') replays branch-local scans inside vLLM, and ReplaySSM~\cite{dao2026replayssm} caches inputs instead of states.
+TreeWY and ReplaySSM both describe snapshotting the recurrent state at every draft position as current practice~\cite{ghantasala2026treewy,dao2026replayssm}, and the mlx-lm pull request does the same~\cite{airrunner2026mlxlmmtp}.
+Our rollback steps the recurrence per position inside the batched verify pass and keeps every (conv, SSM) state, so it is that standard technique, not a new one.
+It fits our setting because one sequence, chains of at most four tokens, and a 9B model make the snapshots small, whereas the systems above attack the memory and tree-width limits of batched GPU serving.
+
+\paragraph{On-device and Apple Silicon.}
+ReDrafter~\cite{cheng2024redrafter} reported up to $2.3\times$ on Apple Silicon with an implementation in MLX~\cite{hannun2023mlx}.
+Chordiya~\cite{chordiya2026lossless} found on an M3-class laptop that the quantized Metal backend of llama.cpp~\cite{gerganov2023llamacpp} verifies draft tokens serially, with verify cost growing nearly linearly in the number of drafts for small batches, and three of five configurations ran slower than plain decoding.
+We see the same effect in MLX 0.32.4 on an M1 Pro.
+MLX's small-batch kernel \texttt{qmv\_wide}~\cite{gross2026qmvwide}, adapted from llama.cpp's \texttt{mul\_mv\_ext}, is enabled for affine quantization only on GPU generation 15 (M3) and newer, so 4-bit verification on M1-class GPUs still runs one mat-vec per token.
+llama.cpp has since added few-row simdgroup-matrix kernels for speculative verification on Apple7+ GPUs~\cite{narola2026fewrow} (build b11404), after the b10969 build we use as a baseline.
+Our multi-token kernel uses the same idea, reading each weight once for $T$ tokens, for affine 4-bit weights on an M1 Pro; what sets it apart is the summation-order constraint described next.
+MTPLX reports $1.6\times$ on a 16\,GB M4 Mac mini and the mlx-lm pull request $1.57\times$ for a 27B model on an M4 Pro; these figures use other chips and models and are not directly comparable to ours.
+Weight quantization (GPTQ~\cite{frantar2023gptq}, AWQ~\cite{lin2024awq}, llama.cpp k-quants~\cite{kawrakow2023kquants}) and roofline analyses of decoding~\cite{williams2009roofline,pope2022scaling,yuan2024unveiled} explain why single-stream decoding is bandwidth-bound and why one weight read has to serve several tokens.
+
+\paragraph{Exactness and determinism.}
+Speculative decoding is lossless in exact arithmetic, but batched verification uses different kernels and reduction orders from single-token decoding, so greedy outputs can flip at near-ties.
+vLLM states its guarantee only up to hardware numerical precision~\cite{vllm2026specdecode}.
+Zhang et al.~\cite{zhang2026correctness} report 95\% exact match with standard decoding and trace the remainder to floating-point non-determinism.
+An open llama.cpp issue~\cite{ankk2026issue25618} traces MTP greedy divergence on quantized targets to different single- and multi-token kernels, and restores bit-identity only by forcing the multi-token pass onto matching kernels.
+Batch-invariant kernels~\cite{he2025nondeterminism,vllm2026batchinvariance} make results independent of batch size by fixing the reduction strategy, and LLM-42~\cite{gond2026llm42} enforces determinism with a verify-and-rollback loop over fixed-shape reductions.
+Our kernel applies the batch-invariance principle to speculative verification on Metal.
+It reproduces, row by row, the summation order of MLX's single-token \texttt{qmv} while still reading each weight once, so speculative output is byte-identical to plain greedy decoding, not only equal in distribution.
+We found no prior work that makes a fast multi-token quantized verifier bit-identical to the single-token path; in our implementation the exactness costs 1--2\%.

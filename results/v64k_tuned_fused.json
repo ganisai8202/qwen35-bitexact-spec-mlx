@@ -1,0 +1,42 @@
+{
+ "math_gsm": {
+  "plain_tps": 34.15,
+  "auto": {
+   "tps": 54.26,
+   "speedup": 1.59,
+   "accept": 0.769,
+   "tok_per_cycle": 2.64,
+   "identical_prefix": "230/230"
+  }
+ },
+ "math_alg": {
+  "plain_tps": 34.29,
+  "auto": {
+   "tps": 59.27,
+   "speedup": 1.73,
+   "accept": 0.896,
+   "tok_per_cycle": 3.38,
+   "identical_prefix": "212/256"
+  }
+ },
+ "code": {
+  "plain_tps": 34.08,
+  "auto": {
+   "tps": 51.22,
+   "speedup": 1.5,
+   "accept": 0.771,
+   "tok_per_cycle": 2.6,
+   "identical_prefix": "256/256"
+  }
+ },
+ "prose": {
+  "plain_tps": 33.75,
+  "auto": {
+   "tps": 45.45,
+   "speedup": 1.35,
+   "accept": 0.676,
+   "tok_per_cycle": 1.86,
+   "identical_prefix": "256/256"
+  }
+ }
+}

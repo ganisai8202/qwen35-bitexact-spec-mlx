@@ -1,0 +1,574 @@
+% refs.bib -- every entry verified against its primary source on 2026-11-03
+% (arXiv API metadata for arXiv papers; GitHub / Hugging Face / vendor pages for the rest).
+
+% ---------------------------------------------------------------- speculative decoding
+
+@inproceedings{leviathan2023fast,
+  title         = {Fast Inference from Transformers via Speculative Decoding},
+  author        = {Leviathan, Yaniv and Kalman, Matan and Matias, Yossi},
+  booktitle     = {International Conference on Machine Learning (ICML)},
+  year          = {2023},
+  eprint        = {2211.17192},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2211.17192}
+}
+
+@article{chen2023accelerating,
+  title         = {Accelerating Large Language Model Decoding with Speculative Sampling},
+  author        = {Chen, Charlie and Borgeaud, Sebastian and Irving, Geoffrey and Lespiau, Jean-Baptiste and Sifre, Laurent and Jumper, John},
+  journal       = {arXiv preprint arXiv:2302.01318},
+  year          = {2023},
+  eprint        = {2302.01318},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2302.01318}
+}
+
+@inproceedings{stern2018blockwise,
+  title         = {Blockwise Parallel Decoding for Deep Autoregressive Models},
+  author        = {Stern, Mitchell and Shazeer, Noam and Uszkoreit, Jakob},
+  booktitle     = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year          = {2018},
+  eprint        = {1811.03115},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/1811.03115}
+}
+
+@inproceedings{zhang2024draftverify,
+  title         = {Draft \& Verify: Lossless Large Language Model Acceleration via Self-Speculative Decoding},
+  author        = {Zhang, Jun and Wang, Jue and Li, Huan and Shou, Lidan and Chen, Ke and Chen, Gang and Mehrotra, Sharad},
+  booktitle     = {Annual Meeting of the Association for Computational Linguistics (ACL)},
+  year          = {2024},
+  eprint        = {2309.08168},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2309.08168}
+}
+
+@article{cai2024medusa,
+  title         = {{Medusa}: Simple {LLM} Inference Acceleration Framework with Multiple Decoding Heads},
+  author        = {Cai, Tianle and Li, Yuhong and Geng, Zhengyang and Peng, Hongwu and Lee, Jason D. and Chen, Deming and Dao, Tri},
+  journal       = {arXiv preprint arXiv:2401.10774},
+  year          = {2024},
+  eprint        = {2401.10774},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2401.10774}
+}
+
+@article{li2024eagle,
+  title         = {{EAGLE}: Speculative Sampling Requires Rethinking Feature Uncertainty},
+  author        = {Li, Yuhui and Wei, Fangyun and Zhang, Chao and Zhang, Hongyang},
+  journal       = {arXiv preprint arXiv:2401.15077},
+  year          = {2024},
+  eprint        = {2401.15077},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2401.15077}
+}
+
+@article{li2024eagle2,
+  title         = {{EAGLE-2}: Faster Inference of Language Models with Dynamic Draft Trees},
+  author        = {Li, Yuhui and Wei, Fangyun and Zhang, Chao and Zhang, Hongyang},
+  journal       = {arXiv preprint arXiv:2406.16858},
+  year          = {2024},
+  eprint        = {2406.16858},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2406.16858}
+}
+
+@article{li2025eagle3,
+  title         = {{EAGLE-3}: Scaling up Inference Acceleration of Large Language Models via Training-Time Test},
+  author        = {Li, Yuhui and Wei, Fangyun and Zhang, Chao and Zhang, Hongyang},
+  journal       = {arXiv preprint arXiv:2503.01840},
+  year          = {2025},
+  eprint        = {2503.01840},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2503.01840}
+}
+
+@article{fu2024lookahead,
+  title         = {Break the Sequential Dependency of {LLM} Inference Using Lookahead Decoding},
+  author        = {Fu, Yichao and Bailis, Peter and Stoica, Ion and Zhang, Hao},
+  journal       = {arXiv preprint arXiv:2402.02057},
+  year          = {2024},
+  eprint        = {2402.02057},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2402.02057}
+}
+
+@inproceedings{miao2024specinfer,
+  title         = {{SpecInfer}: Accelerating Generative Large Language Model Serving with Tree-based Speculative Inference and Verification},
+  author        = {Miao, Xupeng and Oliaro, Gabriele and Zhang, Zhihao and Cheng, Xinhao and Wang, Zeyu and Zhang, Zhengxin and Wong, Rae Ying Yee and Zhu, Alan and Yang, Lijie and Shi, Xiaoxiang and Shi, Chunan and Chen, Zhuoming and Arfeen, Daiyaan and Abhyankar, Reyna and Jia, Zhihao},
+  booktitle     = {ACM International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS)},
+  year          = {2024},
+  eprint        = {2305.09781},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2305.09781}
+}
+
+@article{xiong2024dyspec,
+  title         = {{DySpec}: Faster Speculative Decoding with Dynamic Token Tree Structure},
+  author        = {Xiong, Yunfan and Zhang, Ruoyu and Li, Yanzeng and Wu, Tianhao and Zou, Lei},
+  journal       = {arXiv preprint arXiv:2410.11744},
+  year          = {2024},
+  eprint        = {2410.11744},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2410.11744}
+}
+
+@article{zhao2025frspec,
+  title         = {{FR-Spec}: Accelerating Large-Vocabulary Language Models via Frequency-Ranked Speculative Sampling},
+  author        = {Zhao, Weilin and Pan, Tengyu and Han, Xu and Zhang, Yudi and Sun, Ao and Huang, Yuxiang and Zhang, Kaihuo and Zhao, Weilun and Li, Yuxuan and Wang, Jianyong and Liu, Zhiyuan and Sun, Maosong},
+  journal       = {arXiv preprint arXiv:2502.14856},
+  year          = {2025},
+  eprint        = {2502.14856},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2502.14856}
+}
+
+@inproceedings{liu2025pearl,
+  title         = {{PEARL}: Parallel Speculative Decoding with Adaptive Draft Length},
+  author        = {Liu, Tianyu and Li, Yun and Lv, Qitan and Liu, Kai and Zhu, Jianchen and Hu, Winston and Sun, Xiao},
+  booktitle     = {International Conference on Learning Representations (ICLR)},
+  year          = {2025},
+  eprint        = {2408.11850},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2408.11850}
+}
+
+@inproceedings{huang2025specdecpp,
+  title         = {{SpecDec++}: Boosting Speculative Decoding via Adaptive Candidate Lengths},
+  author        = {Huang, Kaixuan and Guo, Xudong and Wang, Mengdi},
+  booktitle     = {Conference on Language Modeling (COLM)},
+  year          = {2025},
+  eprint        = {2405.19715},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2405.19715}
+}
+
+@inproceedings{kumar2026ssd,
+  title         = {Speculative Speculative Decoding},
+  author        = {Kumar, Tanishq and Dao, Tri and May, Avner},
+  booktitle     = {International Conference on Learning Representations (ICLR)},
+  year          = {2026},
+  eprint        = {2603.03251},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2603.03251}
+}
+
+@article{cheng2024redrafter,
+  title         = {Recurrent Drafter for Fast Speculative Decoding in Large Language Models},
+  author        = {Cheng, Yunfei and Zhang, Aonan and Zhang, Xuanyu and Wang, Chong and Wang, Yi},
+  journal       = {arXiv preprint arXiv:2403.09919},
+  year          = {2024},
+  eprint        = {2403.09919},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2403.09919}
+}
+
+@inproceedings{chen2026dflash,
+  title         = {{DFlash}: Block Diffusion for Flash Speculative Decoding},
+  author        = {Chen, Jian and Liang, Yesheng and Liu, Zhijian},
+  booktitle     = {International Conference on Machine Learning (ICML)},
+  year          = {2026},
+  eprint        = {2602.06036},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2602.06036}
+}
+
+@article{zhang2026dflare,
+  title         = {{DFlare}: Scaling Up Draft Capacity for Block Diffusion Speculative Decoding},
+  author        = {Zhang, Jiebin and Yu, Zhenghan and Liu, Song and Yu, Eugene J. and Li, Zheng and Zhu, Dawei and Duo, Jiangshan and Xiong, Weimin and Song, Yifan and Yu, Guanghua and Zhu, Jianchen and Li, Sujian},
+  journal       = {arXiv preprint arXiv:2606.02091},
+  year          = {2026},
+  eprint        = {2606.02091},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2606.02091}
+}
+
+@misc{liquid2026dspark,
+  title        = {Up to 3.2x Faster Inference with {LFM2.5-DSpark}},
+  author       = {{Liquid AI}},
+  year         = {2026},
+  month        = aug,
+  howpublished = {Hugging Face blog},
+  url          = {https://huggingface.co/blog/LiquidAI/lfm25-dspark},
+  urldate      = {2026-11-03}
+}
+
+% ---------------------------------------------------------------- multi-token prediction and the target model
+
+@article{gloeckle2024mtp,
+  title         = {Better \& Faster Large Language Models via Multi-token Prediction},
+  author        = {Gloeckle, Fabian and Youbi Idrissi, Badr and Rozi{\`e}re, Baptiste and Lopez-Paz, David and Synnaeve, Gabriel},
+  journal       = {arXiv preprint arXiv:2404.19737},
+  year          = {2024},
+  eprint        = {2404.19737},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2404.19737}
+}
+
+@article{deepseek2024v3,
+  title         = {{DeepSeek-V3} Technical Report},
+  author        = {{DeepSeek-AI}},
+  journal       = {arXiv preprint arXiv:2412.19437},
+  year          = {2024},
+  eprint        = {2412.19437},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2412.19437}
+}
+
+@misc{qwen2025qwen3next,
+  title        = {{Qwen3-Next-80B-A3B-Instruct} model card},
+  author       = {{Qwen Team}},
+  year         = {2025},
+  howpublished = {Hugging Face},
+  url          = {https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct},
+  urldate      = {2026-11-03}
+}
+
+@misc{qwen2026qwen35,
+  title        = {{Qwen3.5}: Towards Native Multimodal Agents},
+  author       = {{Qwen Team}},
+  year         = {2026},
+  month        = feb,
+  howpublished = {Blog post; model card at \url{https://huggingface.co/Qwen/Qwen3.5-9B}},
+  url          = {https://qwen.ai/blog?id=qwen3.5},
+  urldate      = {2026-11-03}
+}
+
+@article{qiu2025gatedattn,
+  title         = {Gated Attention for Large Language Models: Non-linearity, Sparsity, and Attention-Sink-Free},
+  author        = {Qiu, Zihan and Wang, Zekun and Zheng, Bo and Huang, Zeyu and Wen, Kaiyue and Yang, Songlin and Men, Rui and Yu, Le and Huang, Fei and Huang, Suozhi and Liu, Dayiheng and Zhou, Jingren and Lin, Junyang},
+  journal       = {arXiv preprint arXiv:2505.06708},
+  year          = {2025},
+  eprint        = {2505.06708},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2505.06708}
+}
+
+% ---------------------------------------------------------------- linear attention / SSMs and speculative decoding for them
+
+@article{yang2024deltanet,
+  title         = {Parallelizing Linear Transformers with the Delta Rule over Sequence Length},
+  author        = {Yang, Songlin and Wang, Bailin and Zhang, Yu and Shen, Yikang and Kim, Yoon},
+  journal       = {arXiv preprint arXiv:2406.06484},
+  year          = {2024},
+  eprint        = {2406.06484},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2406.06484}
+}
+
+@inproceedings{yang2025gdn,
+  title         = {Gated Delta Networks: Improving {Mamba2} with Delta Rule},
+  author        = {Yang, Songlin and Kautz, Jan and Hatamizadeh, Ali},
+  booktitle     = {International Conference on Learning Representations (ICLR)},
+  year          = {2025},
+  eprint        = {2412.06464},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2412.06464}
+}
+
+@article{gu2023mamba,
+  title         = {Mamba: Linear-Time Sequence Modeling with Selective State Spaces},
+  author        = {Gu, Albert and Dao, Tri},
+  journal       = {arXiv preprint arXiv:2312.00752},
+  year          = {2023},
+  eprint        = {2312.00752},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2312.00752}
+}
+
+@inproceedings{dao2024mamba2,
+  title         = {Transformers are {SSMs}: Generalized Models and Efficient Algorithms Through Structured State Space Duality},
+  author        = {Dao, Tri and Gu, Albert},
+  booktitle     = {International Conference on Machine Learning (ICML)},
+  year          = {2024},
+  eprint        = {2405.21060},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2405.21060}
+}
+
+@inproceedings{wang2024mambainllama,
+  title         = {The {Mamba} in the {Llama}: Distilling and Accelerating Hybrid Models},
+  author        = {Wang, Junxiong and Paliotta, Daniele and May, Avner and Rush, Alexander M. and Dao, Tri},
+  booktitle     = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year          = {2024},
+  eprint        = {2408.15237},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2408.15237}
+}
+
+@inproceedings{wu2025stree,
+  title         = {{STree}: Speculative Tree Decoding for Hybrid State-Space Models},
+  author        = {Wu, Yangchao and Qin, Zongyue and Wong, Alex and Soatto, Stefano},
+  booktitle     = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year          = {2025},
+  eprint        = {2505.14969},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2505.14969}
+}
+
+@article{wang2026specla,
+  title         = {{SpecLA}: Efficient Speculative Decoding for Linear-Attention Models},
+  author        = {Wang, Zhibin and Han, Xuying and Yang, Zhaohua and Liu, Fuliang and Li, Xue and Gu, Rong and Zhong, Sheng and Tian, Chen},
+  journal       = {arXiv preprint arXiv:2607.16673},
+  year          = {2026},
+  eprint        = {2607.16673},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2607.16673}
+}
+
+@article{ghantasala2026treewy,
+  title         = {{TreeWY}: Speculative Verification for Gated {DeltaNet} Hybrids},
+  author        = {Ghantasala, Sneha Murthy},
+  journal       = {arXiv preprint arXiv:2608.20961},
+  year          = {2026},
+  eprint        = {2608.20961},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2608.20961}
+}
+
+% v1 of this arXiv entry was titled "GDN Tree-Scan: Served Tree Verification for Recurrent-Hybrid Language Models".
+@article{ma2026lumotree,
+  title         = {{LumoTree}: Path-Parallel Speculative Verification for Hybrid Language Models},
+  author        = {Ma, Zhiyuan},
+  journal       = {arXiv preprint arXiv:2609.23900},
+  year          = {2026},
+  eprint        = {2609.23900},
+  archivePrefix = {arXiv},
+  note          = {v1 titled ``{GDN Tree-Scan}: Served Tree Verification for Recurrent-Hybrid Language Models''},
+  url           = {https://arxiv.org/abs/2609.23900}
+}
+
+@article{wang2026bole,
+  title         = {{Bole}: Efficient Tree Speculation for Hybrid-Attention Language Models},
+  author        = {Wang, Li and Su, Yi and Wu, Xiabao and You, Chiran and Liu, Yongchao and Qiu, Zhan and Zhang, Juelu and Zheng, Jiajun and Liu, Fangxin and Zhang, Jie and Tian, Chen and Huan, Chengying},
+  journal       = {arXiv preprint arXiv:2608.01651},
+  year          = {2026},
+  eprint        = {2608.01651},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2608.01651}
+}
+
+@article{oda2026weaver,
+  title         = {Trees from Marginals: Autoregressive Drafting with Factorized Priors},
+  author        = {Oda, Yuma and Mathieu, Ryan and Knyazhitskiy, Roman and Chakhvadze, Artur},
+  journal       = {arXiv preprint arXiv:2607.06763},
+  year          = {2026},
+  eprint        = {2607.06763},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2607.06763}
+}
+
+@article{zou2026kvbuffer,
+  title         = {{KVBuffer}: {IO}-aware Serving for Linear Attention},
+  author        = {Zou, Longwei and Zhong, Lin},
+  journal       = {arXiv preprint arXiv:2605.19049},
+  year          = {2026},
+  eprint        = {2605.19049},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2605.19049}
+}
+
+@misc{dao2026replayssm,
+  title        = {{ReplaySSM}: Cache {SSM} Inputs, Not State},
+  author       = {Dao, Tri},
+  year         = {2026},
+  howpublished = {Blog post},
+  url          = {https://tridao.me/blog/2026/replayssm/},
+  urldate      = {2026-11-03}
+}
+
+% ---------------------------------------------------------------- consumer / Apple Silicon
+
+@article{chordiya2026lossless,
+  title         = {Lossless but Not Free: An Empirical Anatomy of Speculative Decoding on Consumer Hardware},
+  author        = {Chordiya, Param},
+  journal       = {arXiv preprint arXiv:2607.17283},
+  year          = {2026},
+  eprint        = {2607.17283},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2607.17283}
+}
+
+@misc{hannun2023mlx,
+  title        = {{MLX}: Efficient and flexible machine learning on {Apple} silicon},
+  author       = {Hannun, Awni and Digani, Jagrit and Katharopoulos, Angelos and Collobert, Ronan},
+  year         = {2023},
+  howpublished = {Software, version 0.32.4 used in this work},
+  url          = {https://github.com/ml-explore/mlx},
+  urldate      = {2026-11-03}
+}
+
+@misc{gerganov2023llamacpp,
+  title        = {llama.cpp: {LLM} inference in {C/C++}},
+  author       = {Gerganov, Georgi and {ggml-org contributors}},
+  year         = {2023},
+  howpublished = {Software, build b10969 (as bundled with Ollama) used as baseline},
+  url          = {https://github.com/ggml-org/llama.cpp},
+  urldate      = {2026-11-03}
+}
+
+@misc{kawrakow2023kquants,
+  title        = {k-quants},
+  author       = {Kawrakow, Iwan},
+  year         = {2023},
+  howpublished = {llama.cpp pull request \#1684, merged 2023-06-05},
+  url          = {https://github.com/ggml-org/llama.cpp/pull/1684},
+  urldate      = {2026-11-03}
+}
+
+@misc{airrunner2026mlxlmmtp,
+  title        = {Native {MTP} speculative decoding ({Qwen3.5/3.6} reference implementation)},
+  author       = {{AirRunner}},
+  year         = {2026},
+  howpublished = {mlx-lm pull request \#990 (open as of 2026-11-03)},
+  url          = {https://github.com/ml-explore/mlx-lm/pull/990},
+  urldate      = {2026-11-03}
+}
+
+@misc{altoukhi2026mtplx,
+  title        = {{MTPLX}: native multi-token-prediction speculative decoding on {Apple} silicon},
+  author       = {Altoukhi, Youssof},
+  year         = {2026},
+  howpublished = {Software},
+  url          = {https://github.com/youssofal/MTPLX},
+  urldate      = {2026-11-03}
+}
+
+@misc{gross2026qmvwide,
+  title        = {Add small-batch quantized matvec kernel (qmv\_wide)},
+  author       = {{jessegross}},
+  year         = {2026},
+  howpublished = {MLX pull request \#3764, merged 2026-06-26},
+  url          = {https://github.com/ml-explore/mlx/pull/3764},
+  urldate      = {2026-11-03}
+}
+
+@misc{narola2026fewrow,
+  title        = {metal : few-row {MMA} mat-mul},
+  author       = {{pratiknarola-t}},
+  year         = {2026},
+  howpublished = {llama.cpp pull request \#29869, merged 2026-10-05, release b11404},
+  url          = {https://github.com/ggml-org/llama.cpp/pull/29869},
+  urldate      = {2026-11-03}
+}
+
+@misc{am17an2026llamacppmtp,
+  title        = {llama + spec: {MTP} Support},
+  author       = {{am17an}},
+  year         = {2026},
+  howpublished = {llama.cpp pull request \#22673, merged 2026-05-16},
+  url          = {https://github.com/ggml-org/llama.cpp/pull/22673},
+  urldate      = {2026-11-03}
+}
+
+% ---------------------------------------------------------------- exactness and determinism
+
+@misc{he2025nondeterminism,
+  title        = {Defeating Nondeterminism in {LLM} Inference},
+  author       = {He, Horace and {Thinking Machines Lab}},
+  year         = {2025},
+  month        = sep,
+  howpublished = {Thinking Machines Lab: Connectionism},
+  url          = {https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/},
+  urldate      = {2026-11-03}
+}
+
+@misc{vllm2026specdecode,
+  title        = {Speculative Decoding},
+  author       = {{vLLM Project}},
+  year         = {2026},
+  howpublished = {vLLM documentation, section ``Lossless guarantees of Speculative Decoding''},
+  url          = {https://docs.vllm.ai/en/latest/features/speculative_decoding/},
+  urldate      = {2026-11-03}
+}
+
+@misc{vllm2026batchinvariance,
+  title        = {Batch Invariance},
+  author       = {{vLLM Project}},
+  year         = {2026},
+  howpublished = {vLLM documentation},
+  url          = {https://docs.vllm.ai/en/latest/features/batch_invariance/},
+  urldate      = {2026-11-03}
+}
+
+@article{gond2026llm42,
+  title         = {{LLM-42}: Enabling Determinism in {LLM} Inference with Verified Speculation},
+  author        = {Gond, Raja and Kamath, Aditya K. and Ramjee, Ramachandran and Panwar, Ashish},
+  journal       = {arXiv preprint arXiv:2601.17768},
+  year          = {2026},
+  eprint        = {2601.17768},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2601.17768}
+}
+
+@inproceedings{zhang2026correctness,
+  title         = {Correctness Forensics for Batch Speculative Decoding: Diagnosing the Ragged Tensor Problem},
+  author        = {Zhang, Ranran Haoran and Dey, Soumik and Mishra, Ashirbad and Wu, Hansi and Li, Binbin and Zhang, Rui},
+  booktitle     = {Findings of the Association for Computational Linguistics: EMNLP},
+  year          = {2026},
+  eprint        = {2510.22876},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2510.22876}
+}
+
+@misc{ankk2026issue25618,
+  title        = {Eval bug: Speculative decoding (draft-mtp / draft-dspark): greedy output diverges from vanilla on quantized targets},
+  author       = {{Ankk98}},
+  year         = {2026},
+  howpublished = {llama.cpp issue \#25618 (open as of 2026-11-03)},
+  url          = {https://github.com/ggml-org/llama.cpp/issues/25618},
+  urldate      = {2026-11-03}
+}
+
+% ---------------------------------------------------------------- quantization and memory-bound decoding
+
+@inproceedings{frantar2023gptq,
+  title         = {{GPTQ}: Accurate Post-Training Quantization for Generative Pre-trained Transformers},
+  author        = {Frantar, Elias and Ashkboos, Saleh and Hoefler, Torsten and Alistarh, Dan},
+  booktitle     = {International Conference on Learning Representations (ICLR)},
+  year          = {2023},
+  eprint        = {2210.17323},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2210.17323}
+}
+
+@inproceedings{lin2024awq,
+  title         = {{AWQ}: Activation-aware Weight Quantization for {LLM} Compression and Acceleration},
+  author        = {Lin, Ji and Tang, Jiaming and Tang, Haotian and Yang, Shang and Chen, Wei-Ming and Wang, Wei-Chen and Xiao, Guangxuan and Dang, Xingyu and Gan, Chuang and Han, Song},
+  booktitle     = {Conference on Machine Learning and Systems (MLSys)},
+  year          = {2024},
+  eprint        = {2306.00978},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2306.00978}
+}
+
+@article{williams2009roofline,
+  title   = {Roofline: An Insightful Visual Performance Model for Multicore Architectures},
+  author  = {Williams, Samuel and Waterman, Andrew and Patterson, David},
+  journal = {Communications of the ACM},
+  volume  = {52},
+  number  = {4},
+  pages   = {65--76},
+  year    = {2009},
+  doi     = {10.1145/1498765.1498785}
+}
+
+@article{pope2022scaling,
+  title         = {Efficiently Scaling Transformer Inference},
+  author        = {Pope, Reiner and Douglas, Sholto and Chowdhery, Aakanksha and Devlin, Jacob and Bradbury, James and Levskaya, Anselm and Heek, Jonathan and Xiao, Kefan and Agrawal, Shivani and Dean, Jeff},
+  journal       = {arXiv preprint arXiv:2211.05102},
+  year          = {2022},
+  eprint        = {2211.05102},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2211.05102}
+}
+
+@article{yuan2024unveiled,
+  title         = {{LLM} Inference Unveiled: Survey and Roofline Model Insights},
+  author        = {Yuan, Zhihang and Shang, Yuzhang and Zhou, Yang and Dong, Zhen and Zhou, Zhe and Xue, Chenhao and Wu, Bingzhe and Li, Zhikai and Gu, Qingyi and Lee, Yong Jae and Yan, Yan and Chen, Beidi and Sun, Guangyu and Keutzer, Kurt},
+  journal       = {arXiv preprint arXiv:2402.16363},
+  year          = {2024},
+  eprint        = {2402.16363},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2402.16363}
+}

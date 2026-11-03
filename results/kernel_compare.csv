@@ -1,0 +1,13 @@
+matrix,T,mlx_T1_ms,mlx_dispatch_x,mlx_qmv_wide_x,qmv_wide_k_lanes,qmv_wide_exact,qmvt_x,qmvt_exact
+deltanet.in_proj_qkv 4096x8192,2,0.0918,1.826,2.235,4,False,1.465,True
+deltanet.in_proj_qkv 4096x8192,3,0.0918,2.566,4.404,4,False,1.994,True
+deltanet.in_proj_qkv 4096x8192,4,0.0918,3.424,4.874,4,False,2.268,False
+mlp.up 4096x12288,2,0.1396,1.726,2.157,4,False,1.356,True
+mlp.up 4096x12288,3,0.1396,2.537,4.227,4,False,1.907,True
+mlp.up 4096x12288,4,0.1396,3.313,4.771,4,False,2.168,False
+mlp.down 12288x4096,2,0.1379,1.663,2.292,4,False,1.321,True
+mlp.down 12288x4096,3,0.1379,2.468,4.556,4,False,1.849,True
+mlp.down 12288x4096,4,0.1379,3.233,5.073,4,False,2.117,False
+lm_head 4096x248320,2,2.9508,1.557,1.962,4,False,1.229,True
+lm_head 4096x248320,3,2.9508,2.338,3.969,4,False,1.709,True
+lm_head 4096x248320,4,2.9508,3.112,4.467,4,False,1.981,False

@@ -1,0 +1,70 @@
+{
+ "math_gsm": {
+  "plain_tps": 33.01,
+  "k1": {
+   "tps": 49.78,
+   "speedup": 1.51,
+   "accept": 0.909,
+   "tok_per_cycle": 1.9,
+   "identical_prefix": "230/230"
+  },
+  "auto": {
+   "tps": 49.34,
+   "speedup": 1.49,
+   "accept": 0.732,
+   "tok_per_cycle": 2.84,
+   "identical_prefix": "230/230"
+  }
+ },
+ "math_alg": {
+  "plain_tps": 33.65,
+  "k1": {
+   "tps": 50.93,
+   "speedup": 1.51,
+   "accept": 0.962,
+   "tok_per_cycle": 1.96,
+   "identical_prefix": "256/256"
+  },
+  "auto": {
+   "tps": 57.99,
+   "speedup": 1.72,
+   "accept": 0.907,
+   "tok_per_cycle": 3.55,
+   "identical_prefix": "256/256"
+  }
+ },
+ "code": {
+  "plain_tps": 33.51,
+  "k1": {
+   "tps": 49.66,
+   "speedup": 1.48,
+   "accept": 0.91,
+   "tok_per_cycle": 1.91,
+   "identical_prefix": "256/256"
+  },
+  "auto": {
+   "tps": 50.98,
+   "speedup": 1.52,
+   "accept": 0.776,
+   "tok_per_cycle": 2.95,
+   "identical_prefix": "256/256"
+  }
+ },
+ "prose": {
+  "plain_tps": 33.16,
+  "k1": {
+   "tps": 44.47,
+   "speedup": 1.34,
+   "accept": 0.713,
+   "tok_per_cycle": 1.71,
+   "identical_prefix": "256/256"
+  },
+  "auto": {
+   "tps": 41.18,
+   "speedup": 1.24,
+   "accept": 0.56,
+   "tok_per_cycle": 2.19,
+   "identical_prefix": "256/256"
+  }
+ }
+}

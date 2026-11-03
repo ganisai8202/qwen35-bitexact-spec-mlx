@@ -1,0 +1,42 @@
+{
+ "math_gsm": {
+  "plain_tps": 31.68,
+  "k4": {
+   "tps": 22.3,
+   "speedup": 0.7,
+   "accept": 0.55,
+   "tok_per_cycle": 3.2,
+   "identical_prefix": 48
+  }
+ },
+ "math_alg": {
+  "plain_tps": 32.19,
+  "k4": {
+   "tps": 29.57,
+   "speedup": 0.92,
+   "accept": 0.812,
+   "tok_per_cycle": 4.25,
+   "identical_prefix": 48
+  }
+ },
+ "code": {
+  "plain_tps": 29.88,
+  "k4": {
+   "tps": 28.7,
+   "speedup": 0.96,
+   "accept": 0.792,
+   "tok_per_cycle": 4.17,
+   "identical_prefix": 48
+  }
+ },
+ "prose": {
+  "plain_tps": 31.27,
+  "k4": {
+   "tps": 19.68,
+   "speedup": 0.63,
+   "accept": 0.444,
+   "tok_per_cycle": 2.78,
+   "identical_prefix": 48
+  }
+ }
+}

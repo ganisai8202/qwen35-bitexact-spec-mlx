@@ -1,0 +1,43 @@
+{
+ "name": "mlx_4bit_fp16_compiled",
+ "engine": "mlx",
+ "flags": [
+  "--fp16",
+  "--compile"
+ ],
+ "decode_tps_median": 35.51965787403654,
+ "per_prompt_tps": {
+  "math_gsm": 35.44,
+  "math_alg": 35.49,
+  "code": 35.56,
+  "prose": 35.55
+ },
+ "prefill_tps": 230.1707371574626,
+ "prefill_tokens": 1586,
+ "thermal_before": "nominal",
+ "thermal_after": "nominal",
+ "cooldown_s": 45,
+ "load_s": 42,
+ "outputs": {
+  "math_gsm": {
+   "tps": 35.43595140388778,
+   "n": 230,
+   "text": "To determine how much Janet makes at the farmers' market, we need to calculate the number of eggs remaining after she uses some for herself and then multiply that by the selling price.\n\n**Step 1: Calculate the total number of eggs used daily.**\nJanet uses eggs for two purposes:\n1.  Breakfast: 3 eggs\n2.  Baking muffins: 4 eggs\n\nTotal eggs used = $3 + 4 = 7$ eggs.\n\n**Step 2: Calculate the number of eggs remaining for sale.**\nJanet's ducks lay a total of 16 eggs per day.\nRemaining eggs = Total eggs - Eggs used\nRemaining eggs = $16 - 7 = 9$ eggs.\n\n**Step 3: Calculate the total revenue from selling the remaining eggs.**\nShe sells the remaining eggs for $2 each.\nTotal earnings = Remaining eggs $\\times$ Price per egg\nTotal earnings = $9 \\times 2 = 18$.\n\nJanet makes $18 every day at the farmers' market.\n\n\\boxed{18}"
+  },
+  "math_alg": {
+   "tps": 35.48875393578566,
+   "n": 256,
+   "text": "To find all real numbers $x$ such that $x^4 - 5x^2 + 4 = 0$, we can treat this equation as a quadratic equation in terms of $x^2$.\n\n**Step 1: Substitution**\nLet $u = x^2$. Since $x$ is a real number, $x^2$ must be non-negative ($u \\ge 0$).\nSubstituting $u$ into the original equation, we get:\n$$u^2 - 5u + 4 = 0$$\n\n**Step 2: Solve the quadratic equation for $u$**\nWe can factor the quadratic expression:\n$$(u - 4)(u - 1) = 0$$\nThis gives us two possible solutions for $u$:\n$$u = 4 \\quad \\text{or} \\quad u = 1$$\n\n**Step 3: Solve for $x$**\nNow substitute back $x^2 = u$:\n\nCase 1: $x^2 = 4$\nTaking the square root of both sides, we get:\n$$x = \\pm\\sqrt{4}$$\n$$x = 2"
+  },
+  "code": {
+   "tps": 35.56354706445026,
+   "n": 256,
+   "text": "```python\nfrom typing import List, Tuple\n\ndef merge_intervals(intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:\n    \"\"\"\n    Merges overlapping or adjacent intervals.\n\n    Args:\n        intervals: A list of tuples, where each tuple contains two integers\n                   representing the start and end of an interval (inclusive).\n                   The input list may be unsorted.\n\n    Returns:\n        A list of tuples representing the merged non-overlapping intervals.\n        The result is sorted by the start time.\n\n    Example:\n        >>> merge_intervals([(1, 3), (2, 6), (8, 10), (15, 18)])\n        [(1, 6), (8, 10), (15, 18)]\n        >>> merge_intervals([(1, 4), (2, 6)])\n        [(1, 6)]\n        >>> merge_intervals([])\n        []\n    \"\"\"\n    if not intervals:\n        return []\n\n    # Sort intervals by start time\n    intervals.sort(key=lambda x: x[0])\n\n    merged = [intervals[0]]\n\n    for"
+  },
+  "prose": {
+   "tps": 35.55056181228742,
+   "n": 256,
+   "text": "A household refrigerator operates on the principle of a **vapor-compression refrigeration cycle**. While the Second Law of Thermodynamics states that heat naturally flows from hot to cold, a refrigerator uses mechanical work to force heat to flow in the opposite direction: from the cold interior to the warmer outside environment.\n\nThis process relies on a closed loop containing a refrigerant (a fluid that easily changes between liquid and gas states) and four main components working in sequence:\n\n### 1. The Compressor: The Heart of the System\nThe cycle begins at the compressor, usually located at the back or bottom of the refrigerator.\n*   **Function:** The compressor acts as a pump. It takes low-pressure, cool refrigerant gas from the evaporator and compresses it.\n*   **The Result:** By compressing the gas, the compressor significantly increases its **pressure** and **temperature**. The refrigerant becomes a superheated, high-pressure gas. This step requires electrical energy (the hum you hear when the fridge is running), which is the \"work\" needed to move heat against its natural gradient.\n\n### 2. The Condenser: Releasing Heat\nThe hot, high-pressure gas travels through copper coils called the **condenser**, typically found"
+  }
+ }
+}

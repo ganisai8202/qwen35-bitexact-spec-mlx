@@ -1,0 +1,12 @@
+# local models and downloads (fetch with fetch_mtp.py / mlx-community)
+models/*
+!models/vocab_65536.json
+ext/
+*.gguf
+*.safetensors
+# local run logs, orchestration scripts, research notes
+logs/
+research/
+*.sh
+__pycache__/
+.DS_Store
